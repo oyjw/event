@@ -15,7 +15,7 @@ public:
 		int ret=close(sockfd);
 		Log("closing sockfd",ret);
 	}
-	bool write(Stream* stream,char* buf,int size);
+	void write();
 	void read(){
 		char buf[4096];
 		while(1){

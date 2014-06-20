@@ -1,16 +1,17 @@
 #include "Log.h"
 #include <cstdlib>
+#include <errno.h>
 void log(const std::string& str){
-	fprintf(stderr,"%s %s %s\n",__FUNCTION__,__LINE__,str);
+	fprintf(stderr,"%s\n",str.c_str());
 }	
 
-void log(const std::string& str,int ret){
+void log(const std::string& str,int ret,bool exit=false){
 	std::string msg=str;
 	if(ret==-1){
-		msg+=" failed";
+		msg=msg+" failed: "+strerror(errno);
 	}
 	log(msg);
-	if(ret==-1){
+	if(ret==-1 && exit){
 		exit(1);
 	}
 }
