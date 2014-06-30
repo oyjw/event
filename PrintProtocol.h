@@ -3,22 +3,19 @@
 #include "Protocol.h"
 #include "Stream.h"
 #include "Buffer.h"
+#include <string>
+#include <iostream>
 class EchoProtocol:public Protocol{
 public:
 	void onMsgReceived(Stream* stream){
 		Buffer *readBuffer=stream->readBuffer();
 		Buffer *writeBuffer=stream->writeBuffer();
-		int size=0;
-		if(!readBuffer->peek(&size,4)){
+		size_t len=writeBuffer.readableLen();
+		if(len==0)
 			return;
-		}
-		if(readBuffer->readable()<4+size){
-			return;
-		}
-		readBuffer->advance(4);
-		const char* data=readBuffer.readableData();
-		writeBuffer->append(data,size);
-		readBuffer->advance(size);
+		const char* buf=writeBuffer.readableData();
+		std::string str(buf,len);
+		std::cout<<str;
 	}
 
 };
