@@ -2,12 +2,15 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <cstdlib>
 #include <cassert>
+#include <cstring>
 #include "Stream.h"
 #include "Log.h"
 #include "IOLoop.h"
-
+#include "Protocol.h"
 bool setNonblock(int fd){
 	int opt=fcntl(fd,F_GETFL);
 	log("getting file status flag",opt);
@@ -17,6 +20,7 @@ bool setNonblock(int fd){
 	log("setting fd nonblocking",opt);
 	if(opt==-1)
 		return false;
+	return true;
 }
 
 Stream* listenStream(IOLoop* loop,Protocol* proto){
@@ -30,7 +34,7 @@ Stream* listenStream(IOLoop* loop,Protocol* proto){
 	if(fd==-1)
 		return NULL;
 	setNonblock(fd);
-	int ret=bind(fd,&address,sizeof(address));
+	int ret=bind(fd,(sockaddr*)&address,sizeof(address));
 	log("binding socket",ret);
 	if(ret==-1)
 		return NULL;
@@ -38,16 +42,14 @@ Stream* listenStream(IOLoop* loop,Protocol* proto){
 	log("make socket listening",ret);
 	if(ret==-1)
 		return NULL;
-	Stream* stream=new Stream(fd,ACCEPTABLE);
+	Stream* stream=new Stream(fd,ACCEPTABLE,proto);
 	Stream::streams=&loop->streams;
 	loop->addStream(stream);
-	stream->iter=loop->streams.end()-1;
-	
-	stream->setProtocol(proto);
+	stream->iter=--loop->streams.end();
 	return stream;
 }
 
-void Stream::write(){
+void Stream::writeSock(){
 	assert(flag&WRITABLE);
 	size_t len=writeBuffer.readableLen();
 	if(len==0)
@@ -57,21 +59,22 @@ void Stream::write(){
 	do{
 		nwrite=write(sockfd,buf,len);
 	}while(nwrite==-1 && errno==EINTR);
-	char buf[100];
-	snprintf(buf,100,""writing data to %d",sockfd);
-	log(buf,nwrite);
+	char tmp[100];
+	snprintf(tmp,100,"writing data to %d",sockfd);
+	log(tmp,nwrite);
 	if(nwrite==-1 && errno!=EAGAIN && errno!=EWOULDBLOCK){
 		setClosing();
 	}
-	else if(nwrite!=len){
+	else if((size_t)nwrite!=len){
 		writeBuffer.advance(nwrite);
 	}
 }
 
-void Stream::read(){
+void Stream::readSock(){
 	char buf[4096];
+	ssize_t nread=0;
 	while(1){
-		int nread=read(sockfd,buf,4096);
+		nread=read(sockfd,buf,4096);
 		if(nread==-1){
 			if(errno==EINTR)
 				continue;
@@ -83,14 +86,15 @@ void Stream::read(){
 			}
 		}
 		readBuffer.append(buf,nread);
-		assert(readBuffer.readable()==nread);
+		size_t toread=nread;
+		assert(readBuffer.readableLen()==toread);
 		protocol->onMsgReceived(this);
-		while(readBuffer.readable()<nread){
-			nread=readBuffer.readable();
+		while(readBuffer.readableLen()<toread){
+			toread=readBuffer.readableLen();
 			protocol->onMsgReceived(this);
 		}
 	}
-	if(nwrite==-1 && errno!=EAGAIN && errno!=EWOULDBLOCK){
+	if(nread==-1 && errno!=EAGAIN && errno!=EWOULDBLOCK){
 		setClosing();
 	}
 }

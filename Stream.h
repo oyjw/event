@@ -1,7 +1,11 @@
 #ifndef _STREAM_H_
 #define _STREAM_H_
 #include <list>
+#include <unistd.h>
 #include "Log.h"
+#include "Buffer.h"
+#include "Protocol.h"
+class Stream;
 Stream* listenStream();
 bool setNonblock(int fd);
 
@@ -16,11 +20,11 @@ public:
 	static std::list<Stream*>& getAllStreams(){
 		return *streams;
 	}
-	Stream(int fd,Protocol* pro):sockfd(fd),flag(0),protocol(pro) {}
-	Stream(int fd,int f,Protocol* pro):sockfd(fd),flag(f),protocol(pro) {}
+	Stream(int fd,Protocol* pro):flag(0),sockfd(fd),protocol(pro) {}
+	Stream(int fd,int f,Protocol* pro):flag(f),sockfd(fd),protocol(pro) {}
 	~Stream(){
 		int ret=close(sockfd);
-		Log("closing sockfd",ret);
+		log("closing sockfd",ret);
 		if(isAcceptable()){
 			delete protocol;
 		}
@@ -37,19 +41,17 @@ public:
 	bool isClosing(){
 		return flag&CLOSING;
 	}
-	void write();
-	void read();
+	void writeSock();
+	void readSock();
 	int getFd() {return sockfd; }
 	Protocol* getProtocol() {return protocol; }
 	bool isAcceptable() {
 		return flag&ACCEPTABLE;
 	}
-	void close(){
-	}
-	Buffer* readBuffer(){
+	Buffer* getReadBuffer(){
 		return &readBuffer;
 	}
-	Buffer* writeBuffer(){
+	Buffer* getWriteBuffer(){
 		return &writeBuffer;
 	}
 	void setProtocol(Protocol* proto){

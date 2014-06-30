@@ -1,11 +1,14 @@
 #include "Log.h"
 #include <cstdlib>
-#include <errno.h>
+#include <cerrno>
+#include <cstring>
+#include <cstdio>
+
 void log(const std::string& str){
 	fprintf(stderr,"%s\n",str.c_str());
 }	
 
-void log(const std::string& str,int ret,bool exit=false){
+void log(const std::string& str,int ret,bool willExit){
 	std::string msg=str;
 	if(ret==-1){
 		msg=msg+" failed: "+strerror(errno);

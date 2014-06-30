@@ -2,8 +2,8 @@
 #define _IOLOOP_H_
 #include <list>
 #include <sys/epoll.h>
-class Protocol;
-
+class Stream;
+#define MAX_EVENTS 64
 class IOLoop
 {
 public:
@@ -12,7 +12,7 @@ public:
 		log("creating epollfd",epollfd);
 	}
 	void run();
-	void addStream(Stream* stream)[
+	void addStream(Stream* stream){
 		streams.push_back(stream);
 	}
 	~IOLoop(){
@@ -25,7 +25,6 @@ public:
 	std::list<Stream*> streams;
 private:
 	int nClosedStreams;
-	Protocol *protocol;
 	int epollfd;
 	struct epoll_event fdevents[MAX_EVENTS];
 };

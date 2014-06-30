@@ -2,6 +2,6 @@
 #define _LOG_H_
 #include <string>
 void log(const std::string& str);
-void log(const std::string& str,int ret);
+void log(const std::string& str,int ret,bool willExit=false);
 
 #endif

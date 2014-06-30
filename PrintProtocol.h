@@ -8,8 +8,8 @@
 class EchoProtocol:public Protocol{
 public:
 	void onMsgReceived(Stream* stream){
-		Buffer *readBuffer=stream->readBuffer();
-		Buffer *writeBuffer=stream->writeBuffer();
+		Buffer *readBuffer=stream->getReadBuffer();
+		Buffer *writeBuffer=stream->getWriteBuffer();
 		size_t len=writeBuffer.readableLen();
 		if(len==0)
 			return;
