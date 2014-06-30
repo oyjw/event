@@ -1,36 +1,46 @@
 #ifndef _STREAM_H_
 #define _STREAM_H_
-
+#include <list>
 #include "Log.h"
-Stream* listenFd();
+Stream* listenStream();
+bool setNonblock(int fd);
 
-#define ACCEPTABLE
-
+#define ACCEPTABLE 1
+#define WRITABLE 2
+#define CLOSING  4
 class Stream
 {
 public:
-	Stream(int fd):sockfd(fd),flag(0),readBuffer(NULL),writeBuffer(NULL) {
+	static std::list<Stream*>* streams;
+	std::list<Stream*>::iterator iter;
+	static std::list<Stream*>& getAllStreams(){
+		return *streams;
 	}
+	Stream(int fd,Protocol* pro):sockfd(fd),flag(0),protocol(pro) {}
+	Stream(int fd,int f,Protocol* pro):sockfd(fd),flag(f),protocol(pro) {}
 	~Stream(){
 		int ret=close(sockfd);
 		Log("closing sockfd",ret);
-	}
-	void write();
-	void read(){
-		char buf[4096];
-		while(1){
-			int nread=read(sockfd,buf,4096);
-			if(nread==-1){
-				if(errno==EINTR)
-					continue;
-				else if(errno==EAGAIN)
-					break;
-			}
-			readBuffer.append(buf,nread);
-			protocol->onMsgReceived(this);
+		if(isAcceptable()){
+			delete protocol;
 		}
 	}
-	int getfd() {return sockfd; }
+	void setWritable(){
+		flag=flag|WRITABLE;
+	}
+	bool isWritable(){
+		return flag&WRITABLE;
+	}
+	void setClosing(){
+		flag=flag|CLOSING;
+	}
+	bool isClosing(){
+		return flag&CLOSING;
+	}
+	void write();
+	void read();
+	int getFd() {return sockfd; }
+	Protocol* getProtocol() {return protocol; }
 	bool isAcceptable() {
 		return flag&ACCEPTABLE;
 	}
@@ -41,6 +51,9 @@ public:
 	}
 	Buffer* writeBuffer(){
 		return &writeBuffer;
+	}
+	void setProtocol(Protocol* proto){
+		protocol=proto;
 	}
 private:
 	int flag;

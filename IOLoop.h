@@ -1,12 +1,13 @@
 #ifndef _IOLOOP_H_
 #define _IOLOOP_H_
-#include <vector>
+#include <list>
+#include <sys/epoll.h>
 class Protocol;
 
 class IOLoop
 {
 public:
-	IOLoop(Protocol* p){
+	IOLoop(){
 		epollfd=epoll_create(1024);
 		log("creating epollfd",epollfd);
 	}
@@ -17,12 +18,12 @@ public:
 	~IOLoop(){
 		int ret = close(epollfd);
 		log("closing epollfd",ret);
-		delete protocol;
+		for(auto& stream:streams){
+			delete stream;
+		}
 	}
-	bool write(Stream* stream,char* buf,int size);
-	void readStart(Stream* stream,char* buf,int size);
+	std::list<Stream*> streams;
 private:
-	list<Stream*> streams;
 	int nClosedStreams;
 	Protocol *protocol;
 	int epollfd;
