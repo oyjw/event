@@ -23,12 +23,13 @@ bool setNonblock(int fd){
 	return true;
 }
 
+std::list<Stream*>* Stream::streams=NULL;
 Stream* listenStream(IOLoop* loop,Protocol* proto){
 	struct sockaddr_in address;
 	memset(&address,0,sizeof(address));
 	address.sin_family=AF_INET;
-	address.sin_addr.s_addr=inet_addr("127.0.0.1");
-	address.sin_port=htons(8099);
+	address.sin_addr.s_addr=htonl(INADDR_ANY);
+	address.sin_port=htons(8088);
 	int fd=socket(AF_INET,SOCK_STREAM,0);
 	log("creating socket",fd);
 	if(fd==-1)

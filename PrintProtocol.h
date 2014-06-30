@@ -5,15 +5,14 @@
 #include "Buffer.h"
 #include <string>
 #include <iostream>
-class EchoProtocol:public Protocol{
+class PrintProtocol:public Protocol{
 public:
 	void onMsgReceived(Stream* stream){
-		Buffer *readBuffer=stream->getReadBuffer();
 		Buffer *writeBuffer=stream->getWriteBuffer();
-		size_t len=writeBuffer.readableLen();
+		size_t len=writeBuffer->readableLen();
 		if(len==0)
 			return;
-		const char* buf=writeBuffer.readableData();
+		const char* buf=writeBuffer->readableData();
 		std::string str(buf,len);
 		std::cout<<str;
 	}

@@ -14,7 +14,7 @@ void log(const std::string& str,int ret,bool willExit){
 		msg=msg+" failed: "+strerror(errno);
 	}
 	log(msg);
-	if(ret==-1 && exit){
+	if(ret==-1 && willExit){
 		exit(1);
 	}
 }

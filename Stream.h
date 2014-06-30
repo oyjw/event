@@ -6,7 +6,8 @@
 #include "Buffer.h"
 #include "Protocol.h"
 class Stream;
-Stream* listenStream();
+class IOLoop;
+Stream* listenStream(IOLoop* loop,Protocol* proto);
 bool setNonblock(int fd);
 
 #define ACCEPTABLE 1

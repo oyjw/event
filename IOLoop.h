@@ -2,7 +2,9 @@
 #define _IOLOOP_H_
 #include <list>
 #include <sys/epoll.h>
-class Stream;
+#include <unistd.h>
+#include "Log.h"
+#include "Stream.h"
 #define MAX_EVENTS 64
 class IOLoop
 {

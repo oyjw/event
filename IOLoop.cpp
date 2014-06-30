@@ -1,3 +1,5 @@
+#include <sys/socket.h>
+#include <sys/types.h>
 #include "IOLoop.h"
 #include "Log.h"
 #include "Stream.h"
@@ -23,36 +25,41 @@ void IOLoop::run(){
 				if(stream->isAcceptable()){
 					int listenfd=stream->getFd();
 					int sockfd=accept(listenfd,NULL,NULL);
+					log("accept socket",sockfd);
+					if(sockfd==-1){
+						continue;
+					}
 					setNonblock(sockfd);
 					Stream* newstream=new Stream(sockfd,0,stream->getProtocol());
 					struct epoll_event ev;
 					ev.data.ptr=newstream;
 					ev.events=EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-					int ret=epoll_ctl(epollfd,CTL_ADD,sockfd,ev);
+					int ret=epoll_ctl(epollfd,EPOLL_CTL_ADD,sockfd,&ev);
 					log("epoll_ctl",ret);
 					if(ret==-1){
 						delete newstream;
 						continue;
 					}
-					loop->addStream(newstream);
-					newstream->iter=loop->streams.end()-1;
+					addStream(newstream);
+					newstream->iter=--streams.end();
 				}
 				else{
 					if(stream->isClosing()){
 						delete stream;
 					}
 					else{
-						stream->read();
+						stream->readSock();
 					}
 				}
 				if(stream->isWritable()){
-					stream->write();
+					stream->writeSock();
 				}
 			}
 			if(fdevents[i].events && EPOLLOUT){
 				stream->setWritable();
-				stream->write();
+				stream->writeSock();
 			}
 		}
+	}
 		
 }
