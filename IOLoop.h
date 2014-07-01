@@ -15,6 +15,14 @@ public:
 	}
 	void run();
 	void addStream(Stream* stream){
+		struct epoll_event ev;
+ 		ev.data.ptr=stream;
+		ev.events=EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+		int ret=epoll_ctl(epollfd,EPOLL_CTL_ADD,stream->getFd(),&ev);
+		log("epoll_ctl",ret);
+		if(ret==-1){
+			delete stream;
+		}
 		streams.push_back(stream);
 	}
 	~IOLoop(){
