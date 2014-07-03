@@ -14,15 +14,7 @@ public:
 		log("creating epollfd",epollfd);
 	}
 	void run();
-	void addStream(Stream* stream){
-		struct epoll_event ev;
- 		ev.data.ptr=stream;
-		ev.events=EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
-		int ret=epoll_ctl(epollfd,EPOLL_CTL_ADD,stream->getFd(),&ev);
-		log("epoll_ctl",ret);
-		if(ret==-1){
-			delete stream;
-		}
+	void addStream(Stream* stream){	
 		streams.push_back(stream);
 	}
 	~IOLoop(){
@@ -33,6 +25,9 @@ public:
 		}
 	}
 	std::list<Stream*> streams;
+	int getEpollFd(){
+		return epollfd;
+	}
 private:
 	int nClosedStreams;
 	int epollfd;

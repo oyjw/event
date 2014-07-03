@@ -45,6 +45,15 @@ Stream* listenStream(IOLoop* loop,Protocol* proto){
 		return NULL;
 	Stream* stream=new Stream(fd,ACCEPTABLE,proto);
 	Stream::streams=&loop->streams;
+	struct epoll_event ev;
+ 	ev.data.ptr=stream;
+	ev.events=EPOLLIN ;
+	ret=epoll_ctl(loop->getEpollFd(),EPOLL_CTL_ADD,stream->getFd(),&ev);
+	log("epoll_ctl",ret);
+	if(ret==-1){
+		delete stream;
+		return NULL;
+	}
 	loop->addStream(stream);
 	stream->iter=--loop->streams.end();
 	return stream;
@@ -85,6 +94,9 @@ void Stream::readSock(){
 				log("reading sockfd",-1);
 				break;
 			}
+		}
+		else if(nread==0){
+			
 		}
 		readBuffer.append(buf,nread);
 		size_t toread=nread;

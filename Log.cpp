@@ -12,6 +12,7 @@ void log(const std::string& str,int ret,bool willExit){
 	std::string msg=str;
 	if(ret==-1){
 		msg=msg+" failed: "+strerror(errno);
+		perror(str.c_str());
 	}
 	log(msg);
 	if(ret==-1 && willExit){

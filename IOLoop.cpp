@@ -6,6 +6,7 @@
 void IOLoop::run(){
 	while(1){
 		int ret=epoll_wait(epollfd,fdevents,MAX_EVENTS,-1);
+		char buf[100];
 		log("epoll_wait",ret);
 		if(ret==-1){
 			if(errno==EINTR)
@@ -14,6 +15,10 @@ void IOLoop::run(){
 				return;
 			}
 		}
+		else{
+			snprintf(buf,100,"%d events",ret);
+			log(buf);
+		}
 		for(int i=0;i<ret;++i){
 			Stream* stream=(Stream*)fdevents[i].data.ptr;
 			if(fdevents[i].events & EPOLLERR || fdevents[i].events & EPOLLHUP || stream->isClosing()){
@@ -21,7 +26,7 @@ void IOLoop::run(){
 				delete stream;
 				continue;
 			}
-			if(fdevents[i].events && EPOLLIN){
+			if(fdevents[i].events & EPOLLIN){
 				if(stream->isAcceptable()){
 					int listenfd=stream->getFd();
 					int sockfd=accept(listenfd,NULL,NULL);
@@ -55,7 +60,7 @@ void IOLoop::run(){
 					stream->writeSock();
 				}
 			}
-			if(fdevents[i].events && EPOLLOUT){
+			if(fdevents[i].events & EPOLLOUT){
 				stream->setWritable();
 				stream->writeSock();
 			}

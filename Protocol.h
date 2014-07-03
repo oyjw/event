@@ -8,8 +8,8 @@ class Protocol
 public:
 	Protocol() {}
 	virtual ~Protocol() {}
-	void onMsgReceived(Stream* stream) {}
-	void onConnectionClosed() {}
+ 	virtual	void onMsgReceived(Stream* stream) {}
+	virtual void onConnectionClosed() {}
 };
 
 #endif

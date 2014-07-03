@@ -53,7 +53,7 @@ public:
 		readIdx+=step;
 	}
 	const char* readableData(){
-		return vec.data()+RESERVED+readIdx;
+		return vec.data()+readIdx;
 	}
 };
 

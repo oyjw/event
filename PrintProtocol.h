@@ -8,13 +8,14 @@
 class PrintProtocol:public Protocol{
 public:
 	void onMsgReceived(Stream* stream){
-		Buffer *writeBuffer=stream->getWriteBuffer();
-		size_t len=writeBuffer->readableLen();
+		Buffer *readBuffer=stream->getReadBuffer();
+		size_t len=readBuffer->readableLen();
 		if(len==0)
 			return;
-		const char* buf=writeBuffer->readableData();
+		const char* buf=readBuffer->readableData();
 		std::string str(buf,len);
-		std::cout<<str;
+		std::cerr<<str;
+		readBuffer->advance(len);
 	}
 
 };
