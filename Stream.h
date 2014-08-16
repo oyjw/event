@@ -11,8 +11,8 @@ Stream* listenStream(IOLoop* loop,Protocol* proto);
 bool setNonblock(int fd);
 
 #define ACCEPTABLE 1
-#define WRITABLE 2
-#define CLOSING  4
+#define DISCONNECTING 2
+#define DISCONNECTED 3
 class Stream
 {
 public:
@@ -21,15 +21,15 @@ public:
 	static std::list<Stream*>& getAllStreams(){
 		return *streams;
 	}
-	Stream(int fd,Protocol* pro):flag(0),sockfd(fd),protocol(pro) {}
-	Stream(int fd,int f,Protocol* pro):flag(f),sockfd(fd),protocol(pro) {}
+	Stream(int fd,Protocol* pro,IOLoop* l):flag(0),sockfd(fd),protocol(pro),loop(l) {}
+	Stream(int fd,int f,Protocol* pro,IOLoop* l):flag(f),sockfd(fd),protocol(pro),loop(l) {}
 	~Stream(){
 		int ret=close(sockfd);
 		log("closing sockfd",ret);
 		if(isAcceptable()){
 			delete protocol;
 		}
-	}
+	}/* 
 	void setWritable(){
 		flag=flag|WRITABLE;
 	}
@@ -41,7 +41,7 @@ public:
 	}
 	bool isClosing(){
 		return flag&CLOSING;
-	}
+	} */
 	void writeSock();
 	void readSock();
 	int getFd() {return sockfd; }
@@ -55,12 +55,10 @@ public:
 	Buffer* getWriteBuffer(){
 		return &writeBuffer;
 	}
-	void setProtocol(Protocol* proto){
-		protocol=proto;
-	}
 private:
 	int flag;
 	int sockfd;
+	IOLoop* loop;
 	Protocol* protocol;
 	Buffer readBuffer;
 	Buffer writeBuffer;

@@ -35,10 +35,10 @@ void IOLoop::run(){
 						continue;
 					}
 					setNonblock(sockfd);
-					Stream* newstream=new Stream(sockfd,0,stream->getProtocol());
+					Stream* newstream=new Stream(sockfd,0,stream->getProtocol(),this);
 					struct epoll_event ev;
 					ev.data.ptr=newstream;
-					ev.events=EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+					ev.events=EPOLLIN ;
 					int ret=epoll_ctl(epollfd,EPOLL_CTL_ADD,sockfd,&ev);
 					log("epoll_ctl",ret);
 					if(ret==-1){
@@ -49,20 +49,35 @@ void IOLoop::run(){
 					newstream->iter=--streams.end();
 				}
 				else{
-					if(stream->isClosing()){
-						delete stream;
-					}
-					else{
-						stream->readSock();
-					}
+					stream->readSock();
 				}
-				if(stream->isWritable()){
-					stream->writeSock();
+				if(stream->getWriteBuffer()->readableLen()>(size_t)0){
+					struct epoll_event ev;
+					ev.data.ptr=stream;
+					ev.events=EPOLLIN |EPOLLOUT;
+					int ret=epoll_ctl(epollfd,EPOLL_CTL_MOD,sockfd,&ev);
+					log("epoll_ctl",ret);
+					if(ret==-1){
+						delete stream;
+						continue;
+					}
 				}
 			}
 			if(fdevents[i].events & EPOLLOUT){
-				stream->setWritable();
 				stream->writeSock();
+				if(stream->getWriteBuffer()->readableLen()==(size_t)0){
+					if(stream->isDisconnecting()){
+						shutdown(stream->getFd(),SHUT_WR);
+					}
+					struct epoll_event ev;
+					ev.data.ptr=stream;
+					ev.events=EPOLLIN;
+					int ret=epoll_ctl(epollfd,EPOLL_CTL_MOD,sockfd,&ev);
+					log("epoll_ctl",ret);
+					if(ret==-1){
+						delete stream;
+					}
+				}
 			}
 		}
 	}

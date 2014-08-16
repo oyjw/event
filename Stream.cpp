@@ -43,7 +43,7 @@ Stream* listenStream(IOLoop* loop,Protocol* proto){
 	log("make socket listening",ret);
 	if(ret==-1)
 		return NULL;
-	Stream* stream=new Stream(fd,ACCEPTABLE,proto);
+	Stream* stream=new Stream(fd,ACCEPTABLE,proto,loop);
 	Stream::streams=&loop->streams;
 	struct epoll_event ev;
  	ev.data.ptr=stream;
@@ -60,22 +60,18 @@ Stream* listenStream(IOLoop* loop,Protocol* proto){
 }
 
 void Stream::writeSock(){
-	assert(flag&WRITABLE);
 	size_t len=writeBuffer.readableLen();
 	if(len==0)
 		return;
 	const char* buf=writeBuffer.readableData();
-	int nwrite=0;
+	ssize_t nwrite=0;
 	do{
 		nwrite=write(sockfd,buf,len);
 	}while(nwrite==-1 && errno==EINTR);
 	char tmp[100];
 	snprintf(tmp,100,"writing data to %d",sockfd);
 	log(tmp,nwrite);
-	if(nwrite==-1 && errno!=EAGAIN && errno!=EWOULDBLOCK){
-		setClosing();
-	}
-	else if((size_t)nwrite!=len){
+	if(nwrite!=-1){
 		writeBuffer.advance(nwrite);
 	}
 }
@@ -96,7 +92,7 @@ void Stream::readSock(){
 			}
 		}
 		else if(nread==0){
-			
+			break;
 		}
 		readBuffer.append(buf,nread);
 		size_t toread=nread;
@@ -107,10 +103,10 @@ void Stream::readSock(){
 			protocol->onMsgReceived(this);
 		}
 	}
-	if(nread==-1 && errno!=EAGAIN && errno!=EWOULDBLOCK){
-		setClosing();
-	}
 }
 	
+void Stream::shutdown(){
+	flag=flag|DISCONNECTING;
+}
 	
 	
