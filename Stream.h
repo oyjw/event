@@ -11,8 +11,9 @@ Stream* listenStream(IOLoop* loop,Protocol* proto);
 bool setNonblock(int fd);
 
 #define ACCEPTABLE 1
-#define WRITABLE 2
-#define CLOSING  4
+#define ERROR    2
+#define WRITABLE 4
+#define CLOSING  8
 class Stream
 {
 public:
@@ -41,6 +42,12 @@ public:
 	}
 	bool isClosing(){
 		return flag&CLOSING;
+	}
+	void setError(){
+		flag=ERROR;
+	}
+	bool isError(){
+		return flag==ERROR;
 	}
 	void writeSock();
 	void readSock();

@@ -96,7 +96,8 @@ void Stream::readSock(){
 			}
 		}
 		else if(nread==0){
-			
+			setClosing();
+			break;
 		}
 		readBuffer.append(buf,nread);
 		size_t toread=nread;
@@ -111,6 +112,6 @@ void Stream::readSock(){
 		setClosing();
 	}
 }
-	
-	
-	
+
+
+

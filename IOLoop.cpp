@@ -19,11 +19,11 @@ void IOLoop::run(){
 			snprintf(buf,100,"%d events",ret);
 			log(buf);
 		}
+		std::vector<Stream*> closingStreams;
 		for(int i=0;i<ret;++i){
 			Stream* stream=(Stream*)fdevents[i].data.ptr;
-			if(fdevents[i].events & EPOLLERR || fdevents[i].events & EPOLLHUP || stream->isClosing()){
-				streams.erase(stream->iter);
-				delete stream;
+			if(fdevents[i].events & EPOLLERR || fdevents[i].events & EPOLLHUP || stream->isError()){
+				closingStreams.push_back(stream);
 				continue;
 			}
 			if(fdevents[i].events & EPOLLIN){
@@ -50,14 +50,21 @@ void IOLoop::run(){
 				}
 				else{
 					if(stream->isClosing()){
-						delete stream;
+					    closingStreams.push_back(stream);
+						continue;
 					}
 					else{
 						stream->readSock();
 					}
 				}
 				if(stream->isWritable()){
-					stream->writeSock();
+				    if(stream->isClosing()){
+				        closingStreams.push_back(stream);
+						continue;
+					}
+					else{
+						stream->writeSock();
+					}
 				}
 			}
 			if(fdevents[i].events & EPOLLOUT){
@@ -65,6 +72,9 @@ void IOLoop::run(){
 				stream->writeSock();
 			}
 		}
+        for(auto& stream:closingStreams){
+            streams.erase(stream->iter);
+            delete stream;
+        }
 	}
-		
 }
