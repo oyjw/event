@@ -92,6 +92,10 @@ void Stream::readSock(){
 			}
 		}
 		else if(nread==0){
+<<<<<<< HEAD
+=======
+			setClosing();
+>>>>>>> origin/master
 			break;
 		}
 		readBuffer.append(buf,nread);
@@ -104,9 +108,9 @@ void Stream::readSock(){
 		}
 	}
 }
-	
+
 void Stream::shutdown(){
 	flag=flag|DISCONNECTING;
 }
 	
-	
+
