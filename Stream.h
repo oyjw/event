@@ -10,10 +10,13 @@ class IOLoop;
 Stream* listenStream(IOLoop* loop,Protocol* proto);
 bool setNonblock(int fd);
 
-#define ACCEPTABLE 1
-#define ERROR    2
-#define WRITABLE 4
-#define CLOSING  8
+#define ACCEPTABLE     1
+#define WRITABLE       4
+#define CLOSINGWRITE   1<<4
+#define WRITECLOSED    1<<5
+#define READCLOSED     1<<6
+#define DISCONNECTING  1<<7
+
 class Stream
 {
 public:
@@ -30,24 +33,18 @@ public:
 		if(isAcceptable()){
 			delete protocol;
 		}
-	}/
+	}
 	void setWritable(){
 		flag=flag|WRITABLE;
 	}
 	bool isWritable(){
 		return flag&WRITABLE;
 	}
-	void setClosing(){
-		flag=flag|CLOSING;
+	void setDisconnecting(){
+		flag=flag|DISCONNECTING;
 	}
-	bool isClosing(){
-		return flag&CLOSING;
-	}
-	void setError(){
-		flag=ERROR;
-	}
-	bool isError(){
-		return flag==ERROR;
+	bool isDisconnecting(){
+		return flag&DISCONNECTING;
 	}
 	void writeSock();
 	void readSock();

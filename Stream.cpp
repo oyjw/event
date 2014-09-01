@@ -1,5 +1,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <netinet/in.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -61,8 +62,9 @@ Stream* listenStream(IOLoop* loop,Protocol* proto){
 
 void Stream::writeSock(){
 	size_t len=writeBuffer.readableLen();
-	if(len==0)
+	if(len==0){
 		return;
+	}
 	const char* buf=writeBuffer.readableData();
 	ssize_t nwrite=0;
 	do{
@@ -73,6 +75,12 @@ void Stream::writeSock(){
 	log(tmp,nwrite);
 	if(nwrite!=-1){
 		writeBuffer.advance(nwrite);
+	}
+	else if(errno!=EAGAIN && errno!=EWOULDBLOCK){
+		flag|=DISCONNECTEING;
+	}
+	else {
+		flag=flag&(~WRITABLE);
 	}
 }
 
@@ -87,15 +95,12 @@ void Stream::readSock(){
 			else if(errno==EAGAIN || errno==EWOULDBLOCK)
 				break;
 			else{
-				log("reading sockfd",-1);
+				flag|=DISCONNECTEING;
 				break;
 			}
 		}
 		else if(nread==0){
-<<<<<<< HEAD
-=======
-			setClosing();
->>>>>>> origin/master
+			flag=flag|READCLOSED;
 			break;
 		}
 		readBuffer.append(buf,nread);
@@ -109,8 +114,13 @@ void Stream::readSock(){
 	}
 }
 
-void Stream::shutdown(){
-	flag=flag|DISCONNECTING;
+void Stream::setWriteClosed(){
+	flag|=WRITECLOSED;
+	shutdown(stream->getFd(),SHUT_WR);
+}
+
+void Stream::close(){
+	flag=flag|CLOSINGWRITE;
 }
 	
 

@@ -22,8 +22,8 @@ void IOLoop::run(){
 		std::vector<Stream*> closingStreams;
 		for(int i=0;i<ret;++i){
 			Stream* stream=(Stream*)fdevents[i].data.ptr;
-			if(fdevents[i].events & EPOLLERR || fdevents[i].events & EPOLLHUP || stream->isError()){
-				closingStreams.push_back(stream);
+			if(fdevents[i].events & EPOLLERR || fdevents[i].events & EPOLLHUP){
+				closeStream(stream);
 				continue;
 			}
 			if(fdevents[i].events & EPOLLIN){
@@ -49,50 +49,21 @@ void IOLoop::run(){
 					newstream->iter=--streams.end();
 				}
 				else{
-<<<<<<< HEAD
-					if(stream->isClosing()){
-					    closingStreams.push_back(stream);
+					assert(!(stream->isDisconnecting()));
+					if(!receive(stream)){
 						continue;
-					}
-					else{
-						stream->readSock();
 					}
 				}
-/* 				if(stream->getWriteBuffer()->readableLen()>(size_t)0){
-					struct epoll_event ev;
-					ev.data.ptr=stream;
-					ev.events=EPOLLIN |EPOLLOUT;
-					int ret=epoll_ctl(epollfd,EPOLL_CTL_MOD,sockfd,&ev);
-					log("epoll_ctl",ret);
-					if(ret==-1){
-						delete stream;
-						continue;
-					} */
 				if(stream->isWritable()){
-				    if(stream->isClosing()){
-				        closingStreams.push_back(stream);
+					if(!send(stream)){
 						continue;
-					}
-					else{
-						stream->writeSock();
 					}
 				}
 			}
-			if(fdevents[i].events & EPOLLOUT){
+			if(fdevents[i].events & EPOLLOUT ){
+				assert(!stream->isDisconnected());
+				stream->setWritable();
 				stream->writeSock();
-				if(stream->getWriteBuffer()->readableLen()==(size_t)0){
-					if(stream->isDisconnecting()){
-						shutdown(stream->getFd(),SHUT_WR);
-					}
-					struct epoll_event ev;
-					ev.data.ptr=stream;
-					ev.events=EPOLLIN;
-					int ret=epoll_ctl(epollfd,EPOLL_CTL_MOD,sockfd,&ev);
-					log("epoll_ctl",ret);
-					if(ret==-1){
-						delete stream;
-					}
-				}
 			}
 		}
         for(auto& stream:closingStreams){
@@ -100,4 +71,40 @@ void IOLoop::run(){
             delete stream;
         }
 	}
+}
+
+bool IOLoop::receive(Stream* stream){
+	stream->readSock();
+	if(stream->isDisconnecting()){
+		closeStream(stream);
+		return false;
+	}
+	if(stream->readClosed()){
+		return true;
+	}
+}
+
+bool IOLoop::send(Stream* stream){
+	if(!stream->isWritable() || stream->writeClosed())
+		return true;
+	stream->writeSock();
+	if(stream->isDisconnecting()){
+		closeStream(stream);
+		return false;
+	}
+	Buffer* writeBuffer=stream->getWriteBuffer();
+	size_t len=writeBuffer.readableLen();
+	if(len==0 && stream->readClosed()){
+		closeStream(stream);
+		return false;
+	}
+	else if(len==0 && stream->closingWrite()){
+		stream->setWriteClosed();
+	}
+	return true;
+}
+
+void IOLoop::closeStream(Stream* stream){
+	streams.erase(stream->iter);
+    delete stream;
 }
